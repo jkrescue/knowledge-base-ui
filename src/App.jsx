@@ -17,6 +17,7 @@ import NotesList from './pages/NotesList'
 import NoteDetail from './pages/NoteDetail'
 import Topics from './pages/Topics'
 import SearchPage from './pages/SearchPage'
+import NewNote from './pages/NewNote'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -110,6 +111,7 @@ function App() {
             <Route path="/note/:id" element={<NoteDetail />} />
             <Route path="/topics" element={<Topics />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/new" element={<NewNote />} />
           </Routes>
         </div>
       </main>

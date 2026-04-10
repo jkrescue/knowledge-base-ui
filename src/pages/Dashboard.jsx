@@ -153,7 +153,7 @@ function Dashboard() {
           <h2 className="text-2xl font-bold text-gray-900">欢迎回来 👋</h2>
           <p className="text-gray-500 mt-1">这是你今天的工作概览</p>
         </div>
-        <Link to="/notes" className="btn-primary flex items-center gap-2">
+        <Link to="/new" className="btn-primary flex items-center gap-2">
           <span>+ 新建笔记</span>
         </Link>
       </div>
