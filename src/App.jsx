@@ -15,6 +15,8 @@ import Dashboard from './pages/Dashboard'
 import KnowledgeGraph from './pages/KnowledgeGraph'
 import NotesList from './pages/NotesList'
 import NoteDetail from './pages/NoteDetail'
+import Topics from './pages/Topics'
+import SearchPage from './pages/SearchPage'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -106,8 +108,8 @@ function App() {
             <Route path="/graph" element={<KnowledgeGraph />} />
             <Route path="/notes" element={<NotesList />} />
             <Route path="/note/:id" element={<NoteDetail />} />
-            <Route path="/topics" element={<NotesList />} />
-            <Route path="/search" element={<NotesList />} />
+            <Route path="/topics" element={<Topics />} />
+            <Route path="/search" element={<SearchPage />} />
           </Routes>
         </div>
       </main>

@@ -181,7 +181,7 @@ function Dashboard() {
         <div className="lg:col-span-3 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">活跃项目</h3>
-            <Link to="/topics" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            <Link to="/topics" className="text-sm text-primary-600 hover:text-primary-700 font-medium" id="view-all-projects">
               查看全部
             </Link>
           </div>
@@ -222,7 +222,7 @@ function Dashboard() {
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900">最近更新</h3>
-            <Link to="/notes" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            <Link to="/notes" className="text-sm text-primary-600 hover:text-primary-700 font-medium" id="view-all-updates">
               查看全部
             </Link>
           </div>
