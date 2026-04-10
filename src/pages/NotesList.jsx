@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Search, Filter, Calendar, ChevronRight } from 'lucide-react'
+import { FileText, Search, Filter, Calendar, ChevronRight, AlertCircle } from 'lucide-react'
 import { api } from '../api'
+
+// 模拟数据
+const mockNotes = [
+  { id: '2026-04-12', title: '2026-04-12 日报', date: new Date().toISOString(), type: 'daily', content: '今天完成了知识库升级...' },
+  { id: '2026-04-11', title: '2026-04-11 日报', date: new Date(Date.now() - 86400000).toISOString(), type: 'daily', content: '测试了知识库系统...' },
+  { id: '2026-04-10', title: '2026-04-10 日报', date: new Date(Date.now() - 172800000).toISOString(), type: 'daily', content: '完成了PRD设计...' },
+  { id: 'karpathy-wiki', title: 'Karpathy LLM Wiki 升级', date: new Date(Date.now() - 259200000).toISOString(), type: 'projects', content: '基于Karpathy理念的知识库升级...' },
+  { id: 'voice-assistant', title: '工作日报语音助手', date: new Date(Date.now() - 345600000).toISOString(), type: 'projects', content: '语音工作记录工具...' },
+  { id: 'llm-concept', title: 'LLM Wiki 模式', date: new Date(Date.now() - 432000000).toISOString(), type: 'concepts', content: 'Andrej Karpathy提出的知识库架构...' },
+  { id: 'mini-openclaw', title: 'Mini-OpenClaw', date: new Date(Date.now() - 518400000).toISOString(), type: 'projects', content: 'AI Agent框架研究...' },
+  { id: 'ai-research', title: 'AI 研究笔记', date: new Date(Date.now() - 604800000).toISOString(), type: 'ai', content: '大语言模型研究...' },
+]
 
 const typeColors = {
   daily: 'bg-blue-50 text-blue-600',
@@ -24,23 +36,30 @@ const typeLabels = {
 }
 
 function NotesList() {
-  const [notes, setNotes] = useState([])
+  const [notes, setNotes] = useState(mockNotes)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('all')
   const [viewMode, setViewMode] = useState('list')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [usingMockData, setUsingMockData] = useState(true)
 
   useEffect(() => {
     const fetchNotes = async () => {
       try {
         const response = await api.getNotes()
-        if (response.success) {
+        if (response.success && response.data.length > 0) {
           setNotes(response.data)
+          setUsingMockData(false)
+          setError(null)
+        } else {
+          setUsingMockData(true)
+          setError('后端服务未返回数据，显示演示数据')
         }
       } catch (err) {
         console.error('Error fetching notes:', err)
-        setError('无法加载笔记')
+        setUsingMockData(true)
+        setError('无法连接到后端服务，显示演示数据')
       } finally {
         setLoading(false)
       }
@@ -67,12 +86,13 @@ function NotesList() {
 
   const filteredNotes = notes.filter(note => {
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         note.content.toLowerCase().includes(searchQuery.toLowerCase())
+                         (note.content && note.content.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesTag = selectedTag === 'all' || note.type === selectedTag
     return matchesSearch && matchesTag
   })
 
   const formatDate = (dateString) => {
+    if (!dateString) return '未知日期'
     return new Date(dateString).toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: 'long',
@@ -88,16 +108,21 @@ function NotesList() {
     )
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-red-500">{error}</div>
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-6xl mx-auto space-y-6">
+      {/* 警告提示 */}
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+          <div>
+            <p className="text-sm text-yellow-800">{error}</p>
+            <p className="text-xs text-yellow-600 mt-1">
+              如需查看真实数据，请在本地运行后端服务: cd kb-server && npm start
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -176,7 +201,7 @@ function NotesList() {
                   <ChevronRight size={18} className="text-gray-400 flex-shrink-0" />
                 </div>
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                  {note.content.replace(/[#*\[\]]/g, '').substring(0, 150)}...
+                  {(note.content || '').replace(/[#*\[\]]/g, '').substring(0, 150)}...
                 </p>
                 <div className="flex items-center justify-between mt-3">
                   <div className="flex items-center gap-2">

@@ -1,45 +1,55 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Calendar, Briefcase, TrendingUp, Clock, CheckCircle2, Circle } from 'lucide-react'
+import { FileText, Calendar, Briefcase, TrendingUp, Clock, CheckCircle2, Circle, AlertCircle } from 'lucide-react'
 import { api } from '../api'
 
+// 模拟数据（当 API 不可用时使用）
+const mockStats = { totalNotes: 41, weeklyUpdates: 5, activeProjects: 10 }
+
+const mockRecentNotes = [
+  { id: '2026-04-12', title: '2026-04-12 日报', date: new Date().toISOString(), type: 'daily' },
+  { id: '2026-04-11', title: '2026-04-11 日报', date: new Date(Date.now() - 86400000).toISOString(), type: 'daily' },
+  { id: '2026-04-10', title: '2026-04-10 日报', date: new Date(Date.now() - 172800000).toISOString(), type: 'daily' },
+  { id: 'karpathy-wiki', title: 'Karpathy LLM Wiki 升级', date: new Date(Date.now() - 259200000).toISOString(), type: 'projects' },
+  { id: 'voice-assistant', title: '工作日报语音助手', date: new Date(Date.now() - 345600000).toISOString(), type: 'projects' },
+]
+
 function Dashboard() {
-  const [stats, setStats] = useState({ totalNotes: 0, weeklyUpdates: 0, activeProjects: 0 })
-  const [recentNotes, setRecentNotes] = useState([])
+  const [stats, setStats] = useState(mockStats)
+  const [recentNotes, setRecentNotes] = useState(mockRecentNotes)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [usingMockData, setUsingMockData] = useState(false)
 
   useEffect(() => {
-    // 获取统计数据
-    const fetchStats = async () => {
+    // 尝试从 API 获取数据
+    const fetchData = async () => {
       try {
-        const response = await api.getStats()
-        if (response.success) {
-          setStats(response.data)
+        // 获取统计数据
+        const statsResponse = await api.getStats().catch(() => null)
+        if (statsResponse?.success) {
+          setStats(statsResponse.data)
+        } else {
+          setUsingMockData(true)
         }
-      } catch (err) {
-        console.error('Error fetching stats:', err)
-        setError('无法加载统计数据')
-      }
-    }
 
-    // 获取最近笔记
-    const fetchRecentNotes = async () => {
-      try {
-        const response = await api.getNotes()
-        if (response.success) {
-          // 取最新的5条
-          setRecentNotes(response.data.slice(0, 5))
+        // 获取最近笔记
+        const notesResponse = await api.getNotes().catch(() => null)
+        if (notesResponse?.success && notesResponse.data.length > 0) {
+          setRecentNotes(notesResponse.data.slice(0, 5))
+        } else {
+          setUsingMockData(true)
         }
       } catch (err) {
-        console.error('Error fetching notes:', err)
+        console.error('Error fetching data:', err)
+        setError('无法连接到后端服务，显示演示数据')
+        setUsingMockData(true)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchStats()
-    fetchRecentNotes()
+    fetchData()
   }, [])
 
   // 格式化日期
@@ -122,16 +132,23 @@ function Dashboard() {
     )
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-red-500">{error}</div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {/* 警告提示 */}
+      {(error || usingMockData) && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
+          <div>
+            <p className="text-sm text-yellow-800">
+              {error || '后端服务未连接，显示演示数据。如需查看真实数据，请在本地运行后端服务。'}
+            </p>
+            <p className="text-xs text-yellow-600 mt-1">
+              本地运行: cd kb-server && npm start
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
