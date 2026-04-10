@@ -1,74 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { 
-  FileText, 
-  Search, 
-  Filter, 
-  Calendar,
-  Clock,
-  Tag,
-  ChevronRight
-} from 'lucide-react'
-
-// 模拟笔记数据
-const notesData = [
-  {
-    id: '2026-04-12',
-    title: '2026-04-12 日报',
-    summary: '完成了知识库升级，测试了 work organize 命令。学习了 Karpathy 的 LLM Wiki 理念...',
-    date: '2026-04-12',
-    tags: ['daily', 'karpathy-wiki', 'project'],
-    type: 'daily',
-  },
-  {
-    id: '2026-04-11',
-    title: '2026-04-11 日报',
-    summary: '测试了知识库升级系统。完成了代码审查，修复了3个bug。参加了技术分享会...',
-    date: '2026-04-11',
-    tags: ['daily', 'test', 'project'],
-    type: 'daily',
-  },
-  {
-    id: 'karpathy-wiki',
-    title: 'Karpathy LLM Wiki 升级',
-    summary: '基于 Karpathy 理念的个人知识库升级项目。从时间线记录升级为知识网络...',
-    date: '2026-04-10',
-    tags: ['knowledge-base', 'llm', 'obsidian'],
-    type: 'projects',
-  },
-  {
-    id: 'voice-assistant',
-    title: '工作日报语音助手',
-    summary: '完整的语音工作记录工具。支持语音转文字、自然语言解析、自动生成日报...',
-    date: '2026-03-26',
-    tags: ['voice', 'automation', 'daily-report'],
-    type: 'projects',
-  },
-  {
-    id: 'llm-concept',
-    title: 'LLM Wiki 模式',
-    summary: 'Andrej Karpathy 提出的知识库架构。Markdown 优先 + LLM 主动维护 + 双向链接...',
-    date: '2026-04-10',
-    tags: ['concept', 'knowledge-base', 'llm'],
-    type: 'concepts',
-  },
-  {
-    id: 'mini-openclaw',
-    title: 'Mini-OpenClaw',
-    summary: 'AI Agent 框架研究项目。研究和理解 Mini-OpenClaw 的技术架构...',
-    date: '2026-03-29',
-    tags: ['ai', 'agent', 'framework'],
-    type: 'projects',
-  },
-]
-
-const tagFilters = [
-  { id: 'all', label: '全部', count: notesData.length },
-  { id: 'daily', label: '日报', count: notesData.filter(n => n.type === 'daily').length },
-  { id: 'projects', label: '项目', count: notesData.filter(n => n.type === 'projects').length },
-  { id: 'ai', label: 'AI研究', count: notesData.filter(n => n.type === 'ai').length },
-  { id: 'concepts', label: '概念', count: notesData.filter(n => n.type === 'concepts').length },
-]
+import { FileText, Search, Filter, Calendar, ChevronRight } from 'lucide-react'
+import { api } from '../api'
 
 const typeColors = {
   daily: 'bg-blue-50 text-blue-600',
@@ -76,19 +9,92 @@ const typeColors = {
   ai: 'bg-orange-50 text-orange-600',
   concepts: 'bg-teal-50 text-teal-600',
   life: 'bg-purple-50 text-purple-600',
+  meetings: 'bg-yellow-50 text-yellow-600',
+  people: 'bg-indigo-50 text-indigo-600',
+}
+
+const typeLabels = {
+  daily: '日报',
+  projects: '项目',
+  ai: 'AI研究',
+  concepts: '概念',
+  life: '生活',
+  meetings: '会议',
+  people: '人脉',
 }
 
 function NotesList() {
+  const [notes, setNotes] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('all')
   const [viewMode, setViewMode] = useState('list')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const filteredNotes = notesData.filter(note => {
+  useEffect(() => {
+    const fetchNotes = async () => {
+      try {
+        const response = await api.getNotes()
+        if (response.success) {
+          setNotes(response.data)
+        }
+      } catch (err) {
+        console.error('Error fetching notes:', err)
+        setError('无法加载笔记')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNotes()
+  }, [])
+
+  // 计算标签统计
+  const tagCounts = notes.reduce((acc, note) => {
+    const type = note.type || 'other'
+    acc[type] = (acc[type] || 0) + 1
+    return acc
+  }, {})
+
+  const tagFilters = [
+    { id: 'all', label: '全部', count: notes.length },
+    { id: 'daily', label: '日报', count: tagCounts.daily || 0 },
+    { id: 'projects', label: '项目', count: tagCounts.projects || 0 },
+    { id: 'ai', label: 'AI研究', count: tagCounts.ai || 0 },
+    { id: 'concepts', label: '概念', count: tagCounts.concepts || 0 },
+    { id: 'life', label: '生活', count: tagCounts.life || 0 },
+  ]
+
+  const filteredNotes = notes.filter(note => {
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         note.summary.toLowerCase().includes(searchQuery.toLowerCase())
+                         note.content.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesTag = selectedTag === 'all' || note.type === selectedTag
     return matchesSearch && matchesTag
   })
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">加载中...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-red-500">{error}</div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -169,19 +175,19 @@ function NotesList() {
                   <h3 className="font-semibold text-gray-900 line-clamp-1">{note.title}</h3>
                   <ChevronRight size={18} className="text-gray-400 flex-shrink-0" />
                 </div>
-                <p className="text-sm text-gray-500 mt-1 line-clamp-2">{note.summary}</p>
+                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                  {note.content.replace(/[#*\[\]]/g, '').substring(0, 150)}...
+                </p>
                 <div className="flex items-center justify-between mt-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {note.tags.map((tag, index) => (
-                      <span key={index} className="tag bg-gray-100 text-gray-600 text-xs">
-                        #{tag}
-                      </span>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <span className={`tag ${typeColors[note.type] || 'bg-gray-100 text-gray-600'} text-xs`}>
+                      {typeLabels[note.type] || note.type}
+                    </span>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-gray-400">
                     <span className="flex items-center gap-1">
                       <Calendar size={12} />
-                      {note.date}
+                      {formatDate(note.date)}
                     </span>
                   </div>
                 </div>

@@ -27,6 +27,9 @@ export const api = {
   // 获取单个笔记
   getNote: (id) => apiRequest(`/notes/${id}`),
   
+  // 获取最近笔记
+  getRecentNotes: (limit = 5) => apiRequest(`/notes/recent?limit=${limit}`),
+  
   // 获取统计数据
   getStats: () => apiRequest('/stats'),
   
