@@ -19,7 +19,7 @@ function Dashboard() {
   const [recentNotes, setRecentNotes] = useState(mockRecentNotes)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [usingMockData, setUsingMockData] = useState(false)
+  const [usingMockData, setUsingMockData] = useState(true)  // 默认使用模拟数据，直到 API 成功
 
   useEffect(() => {
     // 尝试从 API 获取数据
@@ -29,21 +29,19 @@ function Dashboard() {
         const statsResponse = await api.getStats().catch(() => null)
         if (statsResponse?.success) {
           setStats(statsResponse.data)
-        } else {
-          setUsingMockData(true)
+          setUsingMockData(false)
         }
 
         // 获取最近笔记
         const notesResponse = await api.getNotes().catch(() => null)
         if (notesResponse?.success && notesResponse.data.length > 0) {
           setRecentNotes(notesResponse.data.slice(0, 5))
-        } else {
-          setUsingMockData(true)
+          setUsingMockData(false)
         }
       } catch (err) {
         console.error('Error fetching data:', err)
         setError('无法连接到后端服务，显示演示数据')
-        setUsingMockData(true)
+        // 保持模拟数据
       } finally {
         setLoading(false)
       }

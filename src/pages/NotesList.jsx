@@ -40,28 +40,22 @@ function NotesList() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('all')
   const [viewMode, setViewMode] = useState('list')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [usingMockData, setUsingMockData] = useState(true)
 
+  // 组件挂载时尝试获取真实数据，但默认显示模拟数据
   useEffect(() => {
     const fetchNotes = async () => {
       try {
         const response = await api.getNotes()
         if (response.success && response.data.length > 0) {
           setNotes(response.data)
-          setUsingMockData(false)
           setError(null)
-        } else {
-          setUsingMockData(true)
-          setError('后端服务未返回数据，显示演示数据')
         }
       } catch (err) {
         console.error('Error fetching notes:', err)
-        setUsingMockData(true)
-        setError('无法连接到后端服务，显示演示数据')
-      } finally {
-        setLoading(false)
+        setError('无法连接到后端服务，显示演示数据。如需查看真实数据，请在本地运行后端服务。')
+        // 保持模拟数据
       }
     }
 
