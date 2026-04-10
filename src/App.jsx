@@ -10,7 +10,9 @@ import {
   User,
   Menu,
   X,
-  Database
+  Database,
+  Tag,
+  BarChart3
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import KnowledgeGraph from './pages/KnowledgeGraph'
@@ -18,6 +20,8 @@ import NotesList from './pages/NotesList'
 import NoteDetail from './pages/NoteDetail'
 import Topics from './pages/Topics'
 import UserInterface from './pages/UserInterface'
+import TagManager from './pages/TagManager'
+import NoteAnalytics from './pages/NoteAnalytics'
 import SearchPage from './pages/SearchPage'
 import NewNote from './pages/NewNote'
 import DataManager from './pages/DataManager'
@@ -118,6 +122,8 @@ function App() {
             <Route path="/new" element={<NewNote />} />
             <Route path="/data" element={<DataManager />} />
             <Route path="/settings" element={<UserInterface />} />
+            <Route path="/tags" element={<TagManager />} />
+            <Route path="/analytics" element={<NoteAnalytics />} />
           </Routes>
         </div>
       </main>
