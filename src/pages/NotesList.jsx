@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, Search, Filter, Calendar, ChevronRight, AlertCircle } from 'lucide-react'
+import { Search, Filter, Calendar, Tag, FileText, X, ChevronDown } from 'lucide-react'
 import { api } from '../api'
 
 // 模拟数据
 const mockNotes = [
-  { id: '2026-04-12', title: '2026-04-12 日报', date: new Date().toISOString(), type: 'daily', content: '今天完成了知识库升级...' },
-  { id: '2026-04-11', title: '2026-04-11 日报', date: new Date(Date.now() - 86400000).toISOString(), type: 'daily', content: '测试了知识库系统...' },
-  { id: '2026-04-10', title: '2026-04-10 日报', date: new Date(Date.now() - 172800000).toISOString(), type: 'daily', content: '完成了PRD设计...' },
-  { id: 'karpathy-wiki', title: 'Karpathy LLM Wiki 升级', date: new Date(Date.now() - 259200000).toISOString(), type: 'projects', content: '基于Karpathy理念的知识库升级...' },
-  { id: 'voice-assistant', title: '工作日报语音助手', date: new Date(Date.now() - 345600000).toISOString(), type: 'projects', content: '语音工作记录工具...' },
-  { id: 'llm-concept', title: 'LLM Wiki 模式', date: new Date(Date.now() - 432000000).toISOString(), type: 'concepts', content: 'Andrej Karpathy提出的知识库架构...' },
-  { id: 'mini-openclaw', title: 'Mini-OpenClaw', date: new Date(Date.now() - 518400000).toISOString(), type: 'projects', content: 'AI Agent框架研究...' },
-  { id: 'ai-research', title: 'AI 研究笔记', date: new Date(Date.now() - 604800000).toISOString(), type: 'ai', content: '大语言模型研究...' },
+  { id: '2026-04-12', title: '2026-04-12 日报', date: new Date().toISOString(), type: 'daily', tags: ['daily', 'project'], content: '今天完成了...' },
+  { id: '2026-04-11', title: '2026-04-11 日报', date: new Date(Date.now() - 86400000).toISOString(), type: 'daily', tags: ['daily'], content: '测试了...' },
+  { id: 'karpathy-wiki', title: 'Karpathy LLM Wiki 升级', date: new Date(Date.now() - 172800000).toISOString(), type: 'projects', tags: ['project', 'ai'], content: '知识库升级...' },
+  { id: 'voice-assistant', title: '工作日报语音助手', date: new Date(Date.now() - 259200000).toISOString(), type: 'projects', tags: ['project', 'voice'], content: '语音助手...' },
+  { id: 'llm-concept', title: 'LLM Wiki 模式', date: new Date(Date.now() - 345600000).toISOString(), type: 'concepts', tags: ['concept', 'ai'], content: '知识库架构...' },
 ]
 
 const typeColors = {
@@ -35,27 +32,45 @@ const typeLabels = {
   people: '人脉',
 }
 
+const sortOptions = [
+  { value: 'date-desc', label: '最新发布' },
+  { value: 'date-asc', label: '最早发布' },
+  { value: 'title-asc', label: '标题 A-Z' },
+  { value: 'title-desc', label: '标题 Z-A' },
+]
+
 function NotesList() {
   const [notes, setNotes] = useState(mockNotes)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTag, setSelectedTag] = useState('all')
+  const [sortBy, setSortBy] = useState('date-desc')
   const [viewMode, setViewMode] = useState('list')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
+  const [showFilters, setShowFilters] = useState(false)
 
-  // 组件挂载时尝试获取真实数据，但默认显示模拟数据
+  // 日期范围筛选
+  const [dateRange, setDateRange] = useState('all')
+  const dateRangeOptions = [
+    { value: 'all', label: '全部时间' },
+    { value: 'today', label: '今天' },
+    { value: 'week', label: '本周' },
+    { value: 'month', label: '本月' },
+    { value: 'year', label: '今年' },
+  ]
+
   useEffect(() => {
     const fetchNotes = async () => {
       try {
         const response = await api.getNotes()
         if (response.success && response.data.length > 0) {
           setNotes(response.data)
-          setError(null)
         }
       } catch (err) {
         console.error('Error fetching notes:', err)
-        setError('无法连接到后端服务，显示演示数据。如需查看真实数据，请在本地运行后端服务。')
-        // 保持模拟数据
+        setError('无法连接到后端服务，显示演示数据')
       }
     }
 
@@ -78,12 +93,76 @@ function NotesList() {
     { id: 'life', label: '生活', count: tagCounts.life || 0 },
   ]
 
-  const filteredNotes = notes.filter(note => {
-    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (note.content && note.content.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesTag = selectedTag === 'all' || note.type === selectedTag
-    return matchesSearch && matchesTag
-  })
+  // 筛选和排序逻辑
+  const filteredAndSortedNotes = React.useMemo(() => {
+    let result = [...notes]
+
+    // 搜索筛选
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter(note => 
+        note.title.toLowerCase().includes(query) ||
+        (note.content && note.content.toLowerCase().includes(query))
+      )
+    }
+
+    // 标签筛选
+    if (selectedTag !== 'all') {
+      result = result.filter(note => note.type === selectedTag)
+    }
+
+    // 日期范围筛选
+    if (dateRange !== 'all') {
+      const now = new Date()
+      result = result.filter(note => {
+        const noteDate = new Date(note.date)
+        switch (dateRange) {
+          case 'today':
+            return noteDate.toDateString() === now.toDateString()
+          case 'week':
+            const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000)
+            return noteDate >= weekAgo
+          case 'month':
+            return noteDate.getMonth() === now.getMonth() && 
+                   noteDate.getFullYear() === now.getFullYear()
+          case 'year':
+            return noteDate.getFullYear() === now.getFullYear()
+          default:
+            return true
+        }
+      })
+    }
+
+    // 排序
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.date) - new Date(a.date)
+        case 'date-asc':
+          return new Date(a.date) - new Date(b.date)
+        case 'title-asc':
+          return a.title.localeCompare(b.title)
+        case 'title-desc':
+          return b.title.localeCompare(a.title)
+        default:
+          return 0
+      }
+    })
+
+    return result
+  }, [notes, searchQuery, selectedTag, dateRange, sortBy])
+
+  // 分页
+  const totalPages = Math.ceil(filteredAndSortedNotes.length / itemsPerPage)
+  const paginatedNotes = filteredAndSortedNotes.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  // 重置页码当筛选条件改变
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery, selectedTag, dateRange, sortBy])
 
   const formatDate = (dateString) => {
     if (!dateString) return '未知日期'
@@ -92,6 +171,15 @@ function NotesList() {
       month: 'long',
       day: 'numeric'
     })
+  }
+
+  // 清除所有筛选
+  const clearFilters = () => {
+    setSearchQuery('')
+    setSelectedTag('all')
+    setDateRange('all')
+    setSortBy('date-desc')
+    setCurrentPage(1)
   }
 
   if (loading) {
@@ -104,24 +192,14 @@ function NotesList() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* 警告提示 */}
-      {error && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
-          <div>
-            <p className="text-sm text-yellow-800">{error}</p>
-            <p className="text-xs text-yellow-600 mt-1">
-              如需查看真实数据，请在本地运行后端服务: cd kb-server && npm start
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">笔记列表</h2>
-          <p className="text-gray-500 mt-1">共 {filteredNotes.length} 篇笔记</p>
+          <p className="text-gray-500 mt-1">
+            共 {filteredAndSortedNotes.length} 篇笔记
+            {filteredAndSortedNotes.length !== notes.length && ` (筛选自 ${notes.length} 篇)`}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -150,36 +228,102 @@ function NotesList() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="搜索笔记..."
+            placeholder="搜索笔记标题和内容..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-12 pl-12 pr-4 bg-gray-100 rounded-full border-0 focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
+            className="w-full h-12 pl-12 pr-12 bg-gray-100 rounded-full border-0 focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
-        {/* Tag Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <Filter size={16} className="text-gray-400 mr-2" />
-          {tagFilters.map((tag) => (
+        {/* Filter Bar */}
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* Tag Filters */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Filter size={16} className="text-gray-400" />
+            {tagFilters.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => setSelectedTag(tag.id)}
+                className={`tag transition-colors ${
+                  selectedTag === tag.id 
+                    ? 'bg-primary-500 text-white' 
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {tag.label}
+                <span className="ml-1.5 opacity-70">{tag.count}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* More Filters Toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
+          >
+            更多筛选
+            <ChevronDown size={16} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Sort */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+          >
+            {sortOptions.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+
+          {/* Clear Filters */}
+          {(searchQuery || selectedTag !== 'all' || dateRange !== 'all') && (
             <button
-              key={tag.id}
-              onClick={() => setSelectedTag(tag.id)}
-              className={`tag transition-colors ${
-                selectedTag === tag.id 
-                  ? 'bg-primary-500 text-white' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              onClick={clearFilters}
+              className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
             >
-              {tag.label}
-              <span className="ml-1.5 opacity-70">{tag.count}</span>
+              <X size={14} />
+              清除筛选
             </button>
-          ))}
+          )}
         </div>
+
+        {/* Advanced Filters */}
+        {showFilters && (
+          <div className="card p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">时间范围</label>
+              <div className="flex gap-2 flex-wrap">
+                {dateRangeOptions.map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => setDateRange(option.value)}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                      dateRange === option.value
+                        ? 'bg-primary-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Notes List */}
       <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
-        {filteredNotes.map((note) => (
+        {paginatedNotes.map((note) => (
           <Link
             key={note.id}
             to={`/note/${note.id}`}
@@ -192,7 +336,6 @@ function NotesList() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-4">
                   <h3 className="font-semibold text-gray-900 line-clamp-1">{note.title}</h3>
-                  <ChevronRight size={18} className="text-gray-400 flex-shrink-0" />
                 </div>
                 <p className="text-sm text-gray-500 mt-1 line-clamp-2">
                   {(note.content || '').replace(/[#*\[\]]/g, '').substring(0, 150)}...
@@ -216,14 +359,43 @@ function NotesList() {
         ))}
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-2 rounded-lg border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            上一页
+          </button>
+          <span className="text-sm text-gray-600">
+            第 {currentPage} 页，共 {totalPages} 页
+          </span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-2 rounded-lg border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            下一页
+          </button>
+        </div>
+      )}
+
       {/* Empty State */}
-      {filteredNotes.length === 0 && (
+      {paginatedNotes.length === 0 && (
         <div className="text-center py-16">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <FileText size={32} className="text-gray-400" />
           </div>
           <h3 className="text-lg font-medium text-gray-900">没有找到笔记</h3>
           <p className="text-gray-500 mt-1">尝试调整搜索条件或筛选标签</p>
+          <button
+            onClick={clearFilters}
+            className="mt-4 text-primary-600 hover:text-primary-700"
+          >
+            清除所有筛选
+          </button>
         </div>
       )}
     </div>
