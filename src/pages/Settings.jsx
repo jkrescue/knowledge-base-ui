@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Moon, Sun, Monitor, Keyboard, Bell, Shield } from 'lucide-react'
 import { useTheme } from '../ThemeContext'
 
-function Settings() {
+export function Settings() {
   const { theme, toggleTheme } = useTheme()
   const [settings, setSettings] = useState({
     autoSave: true,
