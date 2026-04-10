@@ -17,6 +17,7 @@ import KnowledgeGraph from './pages/KnowledgeGraph'
 import NotesList from './pages/NotesList'
 import NoteDetail from './pages/NoteDetail'
 import Topics from './pages/Topics'
+import UserInterface from './pages/UserInterface'
 import SearchPage from './pages/SearchPage'
 import NewNote from './pages/NewNote'
 import DataManager from './pages/DataManager'
@@ -116,6 +117,7 @@ function App() {
             <Route path="/search" element={<SearchPage />} />
             <Route path="/new" element={<NewNote />} />
             <Route path="/data" element={<DataManager />} />
+            <Route path="/settings" element={<UserInterface />} />
           </Routes>
         </div>
       </main>
