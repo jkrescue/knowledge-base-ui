@@ -9,7 +9,8 @@ import {
   Settings,
   User,
   Menu,
-  X
+  X,
+  Database
 } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import KnowledgeGraph from './pages/KnowledgeGraph'
@@ -18,6 +19,7 @@ import NoteDetail from './pages/NoteDetail'
 import Topics from './pages/Topics'
 import SearchPage from './pages/SearchPage'
 import NewNote from './pages/NewNote'
+import DataManager from './pages/DataManager'
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -28,6 +30,7 @@ function App() {
     { path: '/notes', icon: Calendar, label: '日报' },
     { path: '/topics', icon: FolderOpen, label: '主题' },
     { path: '/search', icon: Search, label: '搜索' },
+    { path: '/data', icon: Database, label: '数据管理' },
   ]
 
   return (
@@ -112,6 +115,7 @@ function App() {
             <Route path="/topics" element={<Topics />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/new" element={<NewNote />} />
+            <Route path="/data" element={<DataManager />} />
           </Routes>
         </div>
       </main>
