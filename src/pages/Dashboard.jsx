@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, Calendar, Briefcase, TrendingUp, Clock, CheckCircle2, Circle, AlertCircle, RefreshCw } from 'lucide-react'
 import { api } from '../api'
+import ConnectionStatus from './ConnectionStatus'
 
 // 模拟数据（当 API 不可用时使用）
 const mockStats = { totalNotes: 41, weeklyUpdates: 5, activeProjects: 10 }
@@ -15,6 +16,10 @@ const mockRecentNotes = [
 ]
 
 function Dashboard() {
+  return (
+    <div>
+      <ConnectionStatus />
+      {/* 其他内容 */}
   const [stats, setStats] = useState(mockStats)
   const [recentNotes, setRecentNotes] = useState(mockRecentNotes)
   const [loading, setLoading] = useState(true)
